@@ -536,3 +536,7 @@ tr.detail-row td { background: var(--sheet-2); }
   table.insights-table td[data-label]::before { content: attr(data-label); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-soft); font-weight: 600; }
   table.insights-table tr.detail-row { padding: 12px 14px; }
 }
+
+/* "Fill with example" buttons for demos */
+.btn.example { border: 1px dashed var(--accent-line); color: var(--accent); background: transparent; flex: none; }
+.btn.example:hover { background: var(--accent-soft); }

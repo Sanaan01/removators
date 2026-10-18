@@ -82,7 +82,8 @@ def shopper(page, w):
     no_overflow(page, 'checkout', w)
     shot(page, f'{w}-checkout')
     if page.locator('#suburb').count():
-        page.fill('#suburb', 'North Ryde')
+        page.click('.summary button:has-text("Use example")')
+        check(f'{w} example suburb', page.input_value('#suburb') == 'North Ryde')
     page.click('button:has-text("Place order")')
     page.wait_for_selector('text=/Thanks! Order RM-/')
     check(f'{w} order placed', True)
@@ -116,6 +117,12 @@ def seller(page, w, ai):
     page.click('text=Use the example'); page.wait_for_selector('table.csv-table')
     page.click('button:has-text("Publish 3 listings")'); page.wait_for_timeout(300)
     check(f'{w} listings after page + CSV', page.locator('table.listings tbody tr').count() == 9)
+    page.click('.tabs >> text=Add products'); page.click('.goal-card:has-text("Type it in")')
+    page.click('.card:has-text("Type in a product") button:has-text("Fill with example")')
+    check(f'{w} example product fills the form', page.input_value('#npt') == 'Spun Brass Floor Lamp' and page.input_value('#npw') == '35')
+    page.click('button:has-text("Publish listing")'); page.wait_for_timeout(300)
+    page.click('.tabs >> text=/^Products/')
+    check(f'{w} example product published', page.locator('table.listings tbody tr').count() == 10)
     no_overflow(page, 'seller after adds', w)
 
 
@@ -135,10 +142,12 @@ def blank_room(page, w, ai):
         check(f'{w} scan fills the room', page.input_value('#rw') == '320' and page.input_value('#rl') == '360')
     else:
         check(f'{w} no Claude: typing is the default', page.locator('#rw').count() == 1)
-        page.fill('#rw', '330'); page.fill('#rl', '360')
+        page.click('.form-card button:has-text("Fill with example")')
+        check(f'{w} example room fills the form', page.input_value('#rw') == '320' and page.input_value('#doff') == '40' and page.locator('[id^=ww]').count() == 1)
     page.click('text=Next: your furniture'); page.wait_for_selector('#preset')
     if page.locator('.item-row').count() == 0:
-        page.select_option('#preset', 'queen-bed'); page.click('button:has-text("Add piece")'); page.wait_for_timeout(200)
+        page.click('button:has-text("Add example pieces")'); page.wait_for_timeout(200)
+        check(f'{w} example pieces added', page.locator('.item-row').count() == 4)
     check(f'{w} furniture listed', page.locator('.item-row').count() >= 1)
     page.click('text=Next: preferences'); page.wait_for_timeout(300)
     btn = page.locator('button:has-text("layouts")').last

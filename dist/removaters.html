@@ -544,6 +544,10 @@ tr.detail-row td { background: var(--sheet-2); }
   table.insights-table tr.detail-row { padding: 12px 14px; }
 }
 
+/* "Fill with example" buttons for demos */
+.btn.example { border: 1px dashed var(--accent-line); color: var(--accent); background: transparent; flex: none; }
+.btn.example:hover { background: var(--accent-soft); }
+
 </style>
 <div id="app"><p style="padding:24px;font-family:system-ui,sans-serif">Loading Removaters…</p></div>
 <noscript><p style="padding:24px">Removaters needs JavaScript to run.</p></noscript>
@@ -3431,6 +3435,30 @@ function spotTools(room, update, layout, beforeChange) {
 
 const spotName = (s) => (s.category ? `${E.label(s.category)} spot` : 'Free space');
 
+/* Example data, so a demo never has to type: every "Fill with example" button uses these. */
+const EXAMPLE_ROOM_FORM = { type: 'bedroom', width: '320', length: '360', doorWall: 'S', doorOffset: '40', doorWidth: '82', windows: [{ wall: 'E', offset: '100', width: '120' }] };
+const EXAMPLE_PIECES = [
+  { name: 'Queen bed', category: 'bed', width_cm: 153, depth_cm: 203 },
+  { name: 'Wardrobe', category: 'wardrobe', width_cm: 100, depth_cm: 55 },
+  { name: 'Desk', category: 'desk', width_cm: 120, depth_cm: 60 },
+  { name: 'Bedside table', category: 'bedside-table', width_cm: 45, depth_cm: 40 },
+];
+const EXAMPLE_SUBURB = 'North Ryde';
+const EXAMPLE_SHOP = {
+  business_name: 'Saltbush & Steel (example)', suburb: 'Leichhardt', size: 'small', badges: ['Women-owned', 'Locally made'],
+  website: 'https://example.com', about: 'Made-up example shop: steel-frame and recycled-timber furniture made in Leichhardt.',
+};
+// Each is sized to fit a gap in the sample and example rooms, so it shows up for shoppers straight away.
+const EXAMPLE_PRODUCTS = [
+  { title: 'Spun Brass Floor Lamp', category: 'floor-lamp', width_cm: 35, depth_cm: 35, height_cm: 150, base_price_cents: 13900, style_tags: ['Mid-century', 'Minimal'], cultural_tags: [], colour: 'beige', material: 'metal', renter_friendly: true, product_url: 'https://example.com/products/spun-brass-floor-lamp', options: [{ name: 'Linen shade', type: 'fabric', price_delta_cents: 0 }, { name: 'Black shade', type: 'colour', price_delta_cents: 2000 }] },
+  { title: 'Recycled Timber Bedside', category: 'bedside-table', width_cm: 42, depth_cm: 35, height_cm: 55, base_price_cents: 12900, style_tags: ['Scandi', 'Coastal'], cultural_tags: [], colour: 'natural wood', material: 'solid wood', renter_friendly: true, product_url: 'https://example.com/products/recycled-timber-bedside', options: [] },
+  { title: 'Steel Frame Desk Chair', category: 'chair', width_cm: 48, depth_cm: 50, height_cm: 82, base_price_cents: 14900, style_tags: ['Industrial', 'Minimal'], cultural_tags: [], colour: 'black', material: 'metal', renter_friendly: true, product_url: 'https://example.com/products/steel-frame-desk-chair', options: [{ name: 'Oak seat', type: 'finish', price_delta_cents: 0 }, { name: 'Walnut seat', type: 'finish', price_delta_cents: 2500 }] },
+];
+const EXAMPLE_REVIEWS = [
+  { rating: 5, comment: 'Fits the gap exactly and looks great in the room. Took about 15 minutes to put together.' },
+  { rating: 4, comment: 'Solid and well made. Delivery took a few days longer than quoted, but it was worth the wait.' },
+];
+
 function chosenLayout(room) {
   return (room.layouts || []).find((l) => l.id === room.chosen_layout_id) || null;
 }
@@ -4116,7 +4144,8 @@ function RoomStep({ room, update, next }) {
       ${room.scan && shown === 'type' && html`<span class="tiny soft">Filled from a scan${room.scan.source === 'photo' ? ' (estimates)' : ''}. Check each number.</span>`}</div>
     ${shown === 'scan' && html`<${ScanPanel} room=${room} ai=${ai} onApply=${applyScan} onType=${() => setMode('type')} onPreview=${setScanPreview} />`}
     ${shown === 'type' && html`<div class="card form-card">
-      <div class="stack" style="gap:4px"><h3>Room size and openings</h3><p class="small soft">Measure wall to wall in centimetres. The top of the plan is north.</p></div>
+      <div class="spread" style="align-items:flex-start"><div class="stack" style="gap:4px"><h3>Room size and openings</h3><p class="small soft">Measure wall to wall in centimetres. The top of the plan is north.</p></div>
+        <button type="button" class="btn small example" onClick=${() => { change(EXAMPLE_ROOM_FORM); toast('Example room filled in: 320 × 360 cm with a door and a window.', 'good'); }}>Fill with example</button></div>
       <div class="field"><label for="rname">Room name</label><input id="rname" class="input" value=${f.name} onInput=${(e) => change({ name: e.target.value })} /></div>
       <div class="field"><span class="label">Room type</span><${Seg} label="Room type" value=${f.type} onChange=${(v) => change({ type: v })} options=${[['bedroom', 'Bedroom'], ['living', 'Living room']]} /></div>
       <div class="grid2">
@@ -4176,6 +4205,13 @@ function FurnitureStep({ room, update, next }) {
   };
   const W = room.width_cm, L = room.length_cm;
   const fitsRoom = (it) => (it.width_cm <= W && it.depth_cm <= L) || (it.depth_cm <= W && it.width_cm <= L);
+  const addExamples = () => {
+    const have = new Set(items.map((i) => i.category));
+    const add = EXAMPLE_PIECES.filter((p) => !have.has(p.category) && fitsRoom(p)).map((p) => ({ id: newId('item'), ...p, keep: true }));
+    if (!add.length) { toast('Your list already has the example pieces.'); return; }
+    update({ items: [...items, ...add] });
+    toast(`Added ${plural(add.length, 'example piece')}: ${add.map((a) => a.name.toLowerCase()).join(', ')}.`, 'good');
+  };
   return html`<div class="split">
     <div class="stack">
       <div class="card form-card">
@@ -4195,7 +4231,7 @@ function FurnitureStep({ room, update, next }) {
         ${items.some((i) => !i.keep) && room.goal !== 'replace' && html`<div class="notice info"><span>You marked pieces to replace. Set your goal to <b>Replace marked pieces</b> in Preferences to shop for their spots.</span></div>`}
       </div>
       <form class="card form-card" onSubmit=${add}>
-        <h3>Add a piece</h3>
+        <div class="spread"><h3>Add a piece</h3><button type="button" class="btn small example" onClick=${addExamples}>Add example pieces</button></div>
         <div class="field"><label for="preset">Start from a common size</label>
           <select id="preset" class="select" value=${f.preset} onChange=${(e) => pickPreset(e.target.value)}>
             <option value="">Custom size</option>
@@ -4756,7 +4792,7 @@ function ReviewsDialog({ productKey, catalog, onClose }) {
     ${p.is_demo && html`<p class="small faint">Demo products start with a made-up rating. Reviews written here are real and added on top.</p>`}
     ${others.length === 0 ? html`<p class="small soft">No written reviews yet.</p>` : others.map((r, i) => html`<div key=${i} class="stack" style="gap:2px;padding-bottom:8px;border-bottom:1px dashed var(--rule)"><${Stars} value=${r.rating} /><p class="small">${r.comment || 'No comment.'}</p></div>`)}
     <div class="stack" style="gap:8px">
-      <span class="label small soft"><b>Your review</b></span>
+      <div class="spread"><span class="label small soft"><b>Your review</b></span><button type="button" class="btn small example" onClick=${() => { const ex = EXAMPLE_REVIEWS[(rating + comment.length) % EXAMPLE_REVIEWS.length]; setRating(ex.rating); setComment(ex.comment); }}>Fill with example</button></div>
       <div class="star-input" role="group" aria-label="Your rating">${[1, 2, 3, 4, 5].map((n) => html`<button key=${n} type="button" aria-pressed=${String(rating >= n)} aria-label=${`${n} star${n > 1 ? 's' : ''}`} onClick=${() => setRating(n)}>★</button>`)}</div>
       <label class="sr-only" for="rv">Comment</label>
       <textarea id="rv" class="textarea" rows="3" maxlength="400" placeholder="What was it like?" value=${comment} onInput=${(e) => setComment(e.target.value)}></textarea>
@@ -4863,7 +4899,7 @@ function CheckoutStep({ room, update, catalog, setStep }) {
       <div class="sum-line"><span>Delivery and pickup</span><span class="num">${feesTotal ? money(feesTotal) : 'Free'}</span></div>
       <div class="sum-line total"><span>Total</span><span class="num">${money(total)}</span></div>
       ${total > room.budget_cents && html`<p class="small err">${money(total - room.budget_cents)} over your ${money(room.budget_cents)} budget.</p>`}
-      ${delivering && html`<div class="field"><label for="suburb">Deliver to suburb</label><input id="suburb" class="input" value=${suburb} placeholder="e.g. North Ryde" maxlength="60" onInput=${(e) => setSuburb(e.target.value)} /><span class="hint">Only the suburb, for delivery estimates.</span></div>`}
+      ${delivering && html`<div class="field"><div class="spread"><label for="suburb">Deliver to suburb</label><button type="button" class="btn-link small" onClick=${() => { setSuburb(EXAMPLE_SUBURB); setErr(''); }}>Use example</button></div><input id="suburb" class="input" value=${suburb} placeholder="e.g. North Ryde" maxlength="60" onInput=${(e) => setSuburb(e.target.value)} /><span class="hint">Only the suburb, for delivery estimates.</span></div>`}
       <div class="notice warn"><span><b>Demo payment.</b> No card is needed and no money moves. The full product runs one secure checkout through a payment provider that pays each store its share.</span></div>
       ${err && html`<p class="err" role="alert">${err}</p>`}
       <button class="btn primary big" onClick=${place}>Place order · ${money(total)}</button>
@@ -4931,7 +4967,7 @@ function SellerProfileForm({ initial, onSave, onCancel, submitLabel }) {
     <div class="field"><span class="label">Owner badges</span><${Chips} multi=${true} options=${CAT.BADGES} value=${f.badges} onChange=${(v) => setF({ ...f, badges: v })} />
       <span class="hint">Self-declared. Shoppers see them labelled that way and can filter by them.</span></div>
     ${err && html`<p class="err" role="alert">${err}</p>`}
-    <div class="form-actions">${onCancel && html`<button type="button" class="btn ghost" onClick=${onCancel}>Cancel</button>`}<button class="btn primary" type="submit">${submitLabel || 'Save'}</button></div>
+    <div class="form-actions">${!initial && html`<button type="button" class="btn small example" style="margin-right:auto" onClick=${() => { setF({ ...f, ...EXAMPLE_SHOP, badges: EXAMPLE_SHOP.badges.slice() }); setErr(''); }}>Fill with example</button>`}${onCancel && html`<button type="button" class="btn ghost" onClick=${onCancel}>Cancel</button>`}<button class="btn primary" type="submit">${submitLabel || 'Save'}</button></div>
   </form>`;
 }
 
@@ -5150,17 +5186,28 @@ function PhotoField({ value, onChange, id }) {
   </div>`;
 }
 
+function productToForm(p) {
+  return {
+    title: p.title || '', category: p.category || 'bookcase',
+    width: p.width_cm ? String(p.width_cm) : '', depth: p.depth_cm ? String(p.depth_cm) : '', height: p.height_cm ? String(p.height_cm) : '',
+    price: p.base_price_cents ? String(p.base_price_cents / 100) : '',
+    styles: (p.style_tags || []).slice(), cultural: (p.cultural_tags || []).slice(), colour: p.colour || 'natural wood', material: p.material || 'solid wood',
+    renter: p.renter_friendly !== false, link: p.product_url || '', photo: p.image_url || '',
+    options: (p.options || []).map((o) => ({ id: o.id, name: o.name, type: o.type, delta: String(o.price_delta_cents / 100) })),
+  };
+}
+
 function ProductForm({ initial, onClose, onSave, inline, notice }) {
   const isNew = !initial.id;
-  const [f, setF] = useState(() => ({
-    title: initial.title || '', category: initial.category || 'bookcase',
-    width: initial.width_cm ? String(initial.width_cm) : '', depth: initial.depth_cm ? String(initial.depth_cm) : '', height: initial.height_cm ? String(initial.height_cm) : '',
-    price: initial.base_price_cents ? String(initial.base_price_cents / 100) : '',
-    styles: initial.style_tags || [], cultural: initial.cultural_tags || [], colour: initial.colour || 'natural wood', material: initial.material || 'solid wood',
-    renter: initial.renter_friendly !== false, link: initial.product_url || '', photo: initial.image_url || '',
-    options: (initial.options || []).map((o) => ({ id: o.id, name: o.name, type: o.type, delta: String(o.price_delta_cents / 100) })),
-  }));
+  const [f, setF] = useState(() => productToForm(initial));
   const [errs, setErrs] = useState([]);
+  const [exN, setExN] = useState(0);
+  const fillExample = () => {
+    const ex = EXAMPLE_PRODUCTS[exN % EXAMPLE_PRODUCTS.length];
+    setF((cur) => ({ ...productToForm(ex), photo: cur.photo }));
+    setErrs([]);
+    setExN(exN + 1);
+  };
   const set = (patch) => setF((cur) => ({ ...cur, ...patch }));
   const setOpt = (i, patch) => setF((cur) => ({ ...cur, options: cur.options.map((o, j) => (j === i ? { ...o, ...patch } : o)) }));
   const pre = inline ? 'n' : 'e';
@@ -5227,7 +5274,8 @@ function ProductForm({ initial, onClose, onSave, inline, notice }) {
     ${inline ? html`<div class="form-actions"><button type="button" class="btn ghost" onClick=${onClose}>Clear form</button><button type="submit" class="btn primary">Publish listing</button></div>` : html`<button type="submit" class="sr-only">Save</button>`}
   </form>`;
   if (inline) {
-    return html`<div class="card pad stack"><div class="stack" style="gap:4px"><h3>Type in a product</h3><p class="small soft">Every listing has one fixed size. Options change colour, fabric or finish only.</p></div>${body}</div>`;
+    return html`<div class="card pad stack"><div class="spread" style="align-items:flex-start"><div class="stack" style="gap:4px"><h3>Type in a product</h3><p class="small soft">Every listing has one fixed size. Options change colour, fabric or finish only.</p></div>
+      <button type="button" class="btn small example" onClick=${fillExample}>Fill with example</button></div>${body}</div>`;
   }
   return html`<${Dialog} title=${isNew ? 'Add a listing' : `Edit ${initial.title}`} sub="Every listing has one fixed size. Options change colour, fabric or finish only." onClose=${onClose} wide=${true}
     footer=${html`<button class="btn ghost" onClick=${onClose}>Cancel</button><button class="btn primary" onClick=${submit}>${isNew ? 'Publish listing' : 'Save changes'}</button>`}>
