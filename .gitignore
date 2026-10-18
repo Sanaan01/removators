@@ -1,0 +1,7 @@
+node_modules/
+__pycache__/
+*.pyc
+# local working copies, not part of the app
+live-*.html
+backup.sh
+backup-mtimes.json

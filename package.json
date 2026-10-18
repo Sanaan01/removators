@@ -1,0 +1,16 @@
+{
+  "name": "removaters",
+  "version": "1.0.0",
+  "description": "Design a room around the furniture you own: scan it, get three layouts, fill the gaps from many stores, check out once. Sym AI Open 2026.",
+  "scripts": {
+    "build": "node build.cjs",
+    "test": "node --test test/",
+    "smoke": "python3 test/smoke.py"
+  },
+  "dependencies": {
+    "htm": "3.1.1",
+    "preact": "10.19.3",
+    "three": "0.147.0"
+  },
+  "private": true
+}
